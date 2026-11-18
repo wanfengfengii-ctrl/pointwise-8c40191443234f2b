@@ -1,0 +1,6 @@
+{
+  "batch_id": "track-demo-a",
+  "day_id": "2026-11-18",
+  "readings": [11, 22, null, 44],
+  "selection": [1, 3]
+}
