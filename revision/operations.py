@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from revision.coordinates import (
     Copy,
@@ -13,7 +13,9 @@ from revision.occurrences import Occurrence
 
 
 def apply_operations(
-    working: list[Occurrence], operations: Sequence[Operation]
+    working: list[Occurrence],
+    operations: Sequence[Operation],
+    mint_occurrence_id: Callable[[], int],
 ) -> None:
     if not isinstance(operations, Sequence) or isinstance(operations, (str, bytes, bytearray)):
         raise ValueError('operations must be an ordered sequence of edit steps')
@@ -32,7 +34,10 @@ def apply_operations(
                     destination = move_insert_position(operation.source, operation.gap)
                     working.insert(destination, occurrence)
                 else:
-                    occurrence = Occurrence(working[operation.source].source)
+                    # A copy is a new, independently editable occurrence that
+                    # shares the source row's provenance and reading.
+                    source = working[operation.source]
+                    occurrence = Occurrence(source.source, mint_occurrence_id())
                     working.insert(operation.gap, occurrence)
             else:
                 raise ValueError('expected a Move, Copy or Delete')

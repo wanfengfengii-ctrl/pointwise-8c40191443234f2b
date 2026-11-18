@@ -13,8 +13,7 @@ def claim(archive: Archive, ticket_id: int, target_revision: int) -> ClaimResult
     with read_snapshot(archive) as connection:
         ticket = load_ticket(connection, ticket_id)
         origin = load_frozen_revision(connection, ticket.revision_id)
-        same_revision = target_revision == ticket.revision_id
-        if same_revision:
+        if target_revision == ticket.revision_id:
             target = origin
         else:
             target = load_frozen_revision(connection, target_revision)
@@ -23,5 +22,5 @@ def claim(archive: Archive, ticket_id: int, target_revision: int) -> ClaimResult
         return ClaimResult(
             ticket.ticket_id,
             target.record.revision_id,
-            project_survivors(selected, target.rows, same_revision=same_revision),
+            project_survivors(selected, target.rows),
         )

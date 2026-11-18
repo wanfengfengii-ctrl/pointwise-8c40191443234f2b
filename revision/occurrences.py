@@ -8,7 +8,8 @@ from intake.source_rows import SourceRef
 @dataclass(frozen=True, slots=True)
 class Occurrence:
     source: SourceRef
+    occurrence_id: int
 
 
 def restore_occurrences(rows: Iterable[FrozenRowRecord]) -> list[Occurrence]:
-    return [Occurrence(row.source) for row in rows]
+    return [Occurrence(row.source, row.occurrence_id) for row in rows]

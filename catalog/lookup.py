@@ -19,6 +19,12 @@ class FrozenRowRecord:
     position: int
     source: SourceRef
     value: int | None
+    occurrence_id: int
+
+
+def mint_occurrence_id(connection: Connection) -> int:
+    cursor = connection.execute('INSERT INTO occurrence_registry DEFAULT VALUES')
+    return cursor.lastrowid
 
 
 def validate_record_id(number: int, label: str) -> None:
@@ -42,7 +48,8 @@ def load_revision_rows(
     connection: Connection, revision_id: int
 ) -> tuple[FrozenRowRecord, ...]:
     records = connection.execute(
-        '''SELECT rows.position, rows.batch_id, rows.source_position, source.reading
+        '''SELECT rows.position, rows.batch_id, rows.source_position, source.reading,
+                  rows.occurrence_id
            FROM revision_rows AS rows
            JOIN source_rows AS source
              ON source.batch_id = rows.batch_id
@@ -52,8 +59,13 @@ def load_revision_rows(
         (revision_id,),
     )
     return tuple(
-        FrozenRowRecord(position, SourceRef(batch_id, source_position), decode_reading(reading))
-        for position, batch_id, source_position, reading in records
+        FrozenRowRecord(
+            position,
+            SourceRef(batch_id, source_position),
+            decode_reading(reading),
+            occurrence_id,
+        )
+        for position, batch_id, source_position, reading, occurrence_id in records
     )
 
 
@@ -68,13 +80,14 @@ def insert_revision_record(
 
 
 def insert_revision_rows(
-    connection: Connection, revision_id: int, sources: Iterable[SourceRef]
+    connection: Connection, revision_id: int, rows: Iterable[tuple[SourceRef, int]]
 ) -> None:
     connection.executemany(
-        '''INSERT INTO revision_rows (revision_id, position, batch_id, source_position)
-           VALUES (?, ?, ?, ?)''',
+        '''INSERT INTO revision_rows
+               (revision_id, position, batch_id, source_position, occurrence_id)
+           VALUES (?, ?, ?, ?, ?)''',
         (
-            (revision_id, position, source.batch_id, source.position)
-            for position, source in enumerate(sources)
+            (revision_id, position, source.batch_id, source.position, occurrence_id)
+            for position, (source, occurrence_id) in enumerate(rows)
         ),
     )
